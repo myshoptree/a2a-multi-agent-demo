@@ -15,7 +15,7 @@ from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.routes.agent_card_routes import create_agent_card_routes
 from a2a.server.routes.jsonrpc_routes import create_jsonrpc_routes
-from a2a.types import AgentCard, AgentInterface
+from a2a.types import AgentCard
 
 from shared.proto_helpers import make_text_message, extract_text
 from shared.a2a_tools import run_react_loop

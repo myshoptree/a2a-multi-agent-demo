@@ -2,7 +2,7 @@
 Agent: General — enruta al especialista correcto.
 Ruta: /general
 """
-import sys, os, logging, json
+import sys, os, logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing_extensions import override
@@ -16,7 +16,7 @@ from a2a.server.routes.agent_card_routes import create_agent_card_routes
 from a2a.server.routes.jsonrpc_routes import create_jsonrpc_routes
 from a2a.types import AgentCard
 
-from shared.proto_helpers import make_text_message, extract_text
+from shared.proto_helpers import make_text_message, make_handoff_message, extract_text
 from shared.a2a_tools import run_react_loop
 from shared.session_store import session_store
 
@@ -60,23 +60,18 @@ class GeneralExecutor(AgentExecutor):
             )
 
             if result.type == "answer":
-                # Saludo o consulta genérica — responde directamente
                 await event_queue.enqueue_event(make_text_message(result.content))
             else:
-                # Tiene intención clara — retorna routing al cliente
-                await event_queue.enqueue_event(
-                    make_text_message(json.dumps({
-                        "type":       result.type,
-                        "agent_name": result.agent_name,
-                        "url":        result.url,
-                        "reason":     result.reason,
-                    }, ensure_ascii=False))
-                )
+                await event_queue.enqueue_event(make_handoff_message(
+                    agent_name=result.agent_name,
+                    url=result.url,
+                    reason=result.reason,
+                ))
         except Exception as e:
             log.error(f"[General] ERROR: {e}")
-            await event_queue.enqueue_event(make_text_message(json.dumps({
-                "type": "error", "reason": str(e)
-            })))
+            await event_queue.enqueue_event(
+                make_text_message(f"[General] Error: {e}")
+            )
 
     @override
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

@@ -3,7 +3,7 @@ Agent: Ventas
 Responde consultas de ventas. Si el mensaje no es de su competencia, enruta.
 Ruta: /sales
 """
-import sys, os, logging, json
+import sys, os, logging
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from typing_extensions import override
@@ -17,7 +17,7 @@ from a2a.server.routes.agent_card_routes import create_agent_card_routes
 from a2a.server.routes.jsonrpc_routes import create_jsonrpc_routes
 from a2a.types import AgentCard
 
-from shared.proto_helpers import make_text_message, extract_text
+from shared.proto_helpers import make_text_message, make_handoff_message, extract_text
 from shared.a2a_tools import run_react_loop
 from shared.session_store import session_store
 
@@ -70,15 +70,11 @@ class SalesExecutor(AgentExecutor):
             if result.type == "answer":
                 await event_queue.enqueue_event(make_text_message(result.content))
             else:
-                # Enrutamiento — serializar para el cliente
-                await event_queue.enqueue_event(
-                    make_text_message(json.dumps({
-                        "type":       result.type,
-                        "agent_name": result.agent_name,
-                        "url":        result.url,
-                        "reason":     result.reason,
-                    }, ensure_ascii=False))
-                )
+                await event_queue.enqueue_event(make_handoff_message(
+                    agent_name=result.agent_name,
+                    url=result.url,
+                    reason=result.reason,
+                ))
         except Exception as e:
             log.error(f"[Ventas] ERROR: {e}")
             await event_queue.enqueue_event(make_text_message(f"[Ventas] Error: {e}"))

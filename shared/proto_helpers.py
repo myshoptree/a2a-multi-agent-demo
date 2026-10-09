@@ -2,8 +2,11 @@
 Helpers compartidos para construir objetos protobuf de a2a-sdk v1.2.
 """
 import uuid
-from a2a.types import Message, Part, Role
+from typing import Optional
+from a2a.types import Message, Role
 from a2a.server.agent_execution import RequestContext
+
+HANDOFF_METADATA_KEY = "a2a_handoff"
 
 
 def make_text_message(text: str) -> Message:
@@ -13,6 +16,26 @@ def make_text_message(text: str) -> Message:
     msg.role = Role.Value("ROLE_AGENT")
     part = msg.parts.add()
     part.text = text
+    return msg
+
+
+def make_handoff_message(
+    agent_name: str,
+    url: str,
+    reason: str,
+    human_text: Optional[str] = None,
+) -> Message:
+    """
+    Construye un Message con handoff estructurado en metadata.
+    El body de texto queda legible para clientes que no entienden handoffs.
+    """
+    msg = make_text_message(
+        human_text or f"Te paso con {agent_name}."
+    )
+    handoff = msg.metadata.fields[HANDOFF_METADATA_KEY].struct_value
+    handoff.fields["agent_name"].string_value = agent_name
+    handoff.fields["url"].string_value = url
+    handoff.fields["reason"].string_value = reason
     return msg
 
 
